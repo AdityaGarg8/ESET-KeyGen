@@ -24,7 +24,7 @@ LOGO = """
 ██╔══╝  ╚════██║██╔══╝     ██║      ██╔═██╗ ██╔══╝    ╚██╔╝  ██║   ██║██╔══╝  ██║╚██╗██║   
 ███████╗███████║███████╗   ██║      ██║  ██╗███████╗   ██║   ╚██████╔╝███████╗██║ ╚████║   
 ╚══════╝╚══════╝╚══════╝   ╚═╝      ╚═╝  ╚═╝╚══════╝   ╚═╝    ╚═════╝ ╚══════╝╚═╝  ╚═══╝                                                                      
-                                                Project Version: v1.4.2.0 DEV
+                                                Project Version: v1.4.2.0 DEV v2
                                                 Project Devs: rzc0d3r, AdityaGarg8, k0re,
                                                               Fasjeit, alejanpa17, Ischunddu,
                                                               soladify, AngryBonk
@@ -38,7 +38,7 @@ GET_EBID = 'document.getElementById'
 GET_EBTN = 'document.getElementByTagName'
 GET_EBAV = 'getElementByAttrValue'
 CLICK_WITH_BOOL = 'clickWithBool'
-PARSE_10MINUTEMAILNET_INBOX = 'parse_10minutemailnet_inbox()'
+PARSE_10MINUTEMAIL_INBOX = 'parse_10minutemail_inbox()'
 DEFINE_GET_EBAV_FUNCTION = """
 function getElementByAttrValue(tagName, attrName, attrValue) {
     for (let element of document.getElementsByTagName(tagName)) {
@@ -51,7 +51,7 @@ function clickWithBool(object) {
         return true }
     catch {
         return false } }"""
-DEFINE_PARSE_10MINUTEMAILNET_INBOX_FUNCTION = """function parse_10minutemailnet_inbox() {
+DEFINE_PARSE_10MINUTEMAIL_INBOX_FUNCTION = """function parse_10minutemail_inbox() {
     updatemailbox()
     let mails = Array.from(document.getElementsByTagName('tr')).slice(1)
     let inbox = []
@@ -168,7 +168,7 @@ class Hi2inAPI(object):
     def open_inbox(self):
         self.driver.switch_to.window(self.window_handle)
 
-class TenMinuteMailNetAPI(object):
+class TenMinuteMailAPI(object):
     def __init__(self, driver: Chrome):
         self.driver = driver
         self.email = None
@@ -184,7 +184,7 @@ class TenMinuteMailNetAPI(object):
     def parse_inbox(self):
         self.driver.switch_to.window(self.window_handle)
         self.driver.get('https://10minutemail.net/?lang=en')
-        inbox = self.driver.execute_script('\n'.join([DEFINE_PARSE_10MINUTEMAILNET_INBOX_FUNCTION, 'return '+PARSE_10MINUTEMAILNET_INBOX]))
+        inbox = self.driver.execute_script('\n'.join([DEFINE_PARSE_10MINUTEMAIL_INBOX_FUNCTION, 'return '+PARSE_10MINUTEMAIL_INBOX]))
         return inbox
 
     def open_mail(self, id):
@@ -491,10 +491,9 @@ class EsetRegister(object):
                     activated_href = self.driver.find_element('xpath', "//a[starts-with(@href, 'https://login.eset.com')]").get_attribute('href')
                 except:
                     pass
-            elif args['email_api'] == '10minutemail.net':
+            elif args['email_api'] == '10minutemail':
                 inbox = self.email_obj.parse_inbox()
                 for mail in inbox:
-                    print(mail)
                     mail_id, mail_from, mail_subject = mail
                     if mail_from.find('product.eset.com') != -1:
                         self.email_obj.open_mail(mail_id)
@@ -517,7 +516,7 @@ class EsetRegister(object):
         uCE = SharedTools.untilConditionExecute
 
         console_log('\n[EMAIL] Register page loading...', INFO)
-        if isinstance(self.email_obj, Hi2inAPI) or isinstance(self.email_obj, TenMinuteMailNetAPI):
+        if isinstance(self.email_obj, Hi2inAPI) or isinstance(self.email_obj, TenMinuteMailAPI):
             self.driver.switch_to.new_window('EsetRegister')
             self.window_handle = self.driver.current_window_handle
         self.driver.get('https://login.eset.com/Register')
@@ -558,8 +557,8 @@ class EsetRegister(object):
 
     def confirmAccount(self):
         uCE = SharedTools.untilConditionExecute
-        if isinstance(self.email_obj, TenMinuteMailNetAPI):
-            console_log(f'\n[10minutemail.net] ESET-Token interception...', INFO)
+        if isinstance(self.email_obj, TenMinuteMailAPI):
+            console_log(f'\n[10minutemail] ESET-Token interception...', INFO)
             token = self.getToken(max_iter=100, delay=3)
             self.driver.switch_to.window(self.window_handle)
         elif isinstance(self.email_obj, Hi2inAPI):
@@ -640,7 +639,7 @@ class EsetBusinessRegister(object):
         uCE = SharedTools.untilConditionExecute
         # STEP 0
         console_log('\nLoading EBA-ESET Page...', INFO)
-        if isinstance(self.email_obj, Hi2inAPI) or isinstance(self.email_obj, TenMinuteMailNetAPI):
+        if isinstance(self.email_obj, Hi2inAPI) or isinstance(self.email_obj, TenMinuteMailAPI):
             self.driver.switch_to.new_window('EsetBusinessRegister')
             self.window_handle = self.driver.current_window_handle
         self.driver.get('https://eba.eset.com/Account/Register?culture=en-US')
@@ -717,7 +716,7 @@ class EsetBusinessRegister(object):
                     activated_href = self.driver.find_element('xpath', "//a[starts-with(@href, 'https://eba.eset.com')]").get_attribute('href')
                 except:
                     pass
-            elif args['email_api'] == '10minutemail.net':
+            elif args['email_api'] == '10minutemail':
                 inbox = self.email_obj.parse_inbox()
                 for mail in inbox:
                     mail_id, mail_from, mail_subject = mail
@@ -738,8 +737,8 @@ class EsetBusinessRegister(object):
             time.sleep(delay)
 
     def confirmAccount(self):
-        if isinstance(self.email_obj, TenMinuteMailNetAPI):
-            console_log(f'\n[10minutemail.net] ESET-Token interception...', INFO)
+        if isinstance(self.email_obj, TenMinuteMailAPI):
+            console_log(f'\n[10minutemail] ESET-Token interception...', INFO)
             token = self.getToken(max_iter=100, delay=3)
             self.driver.switch_to.window(self.window_handle)
         elif isinstance(self.email_obj, Hi2inAPI):
@@ -815,8 +814,6 @@ if __name__ == '__main__':
     print(LOGO)
     args_parser = argparse.ArgumentParser()
     # Required
-    # Mail API
-    args_parser.add_argument('--email-api', choices=['1secmail', 'hi2in', '10minutemail.net'], help='Specify which api to use for mail', required=True)
     ## Browsers
     args_browsers = args_parser.add_mutually_exclusive_group(required=True)
     args_browsers.add_argument('--chrome', action='store_true', help='Launching the project via Google Chrome browser')
@@ -834,6 +831,7 @@ if __name__ == '__main__':
     args_parser.add_argument('--no-headless', action='store_true', help='Shows the browser at runtime (The browser is hidden by default, but on Windows 7 this option is enabled by itself)')
     args_parser.add_argument('--custom-browser-location', type=str, default='', help='Set path to the custom browser (to the binary file, useful when using non-standard releases, for example, Firefox Developer Edition)')
     args_parser.add_argument('--debug', action='store_true', help='Enables debugging mode, thus saving everything the developer needs to the log file')
+    args_parser.add_argument('--email-api', choices=['1secmail', 'hi2in', '10minutemail'], default='1secmail', help='Specify which api to use for mail')
     try:
         try:
             args = vars(args_parser.parse_args())
@@ -884,9 +882,9 @@ if __name__ == '__main__':
             sys.exit(0)
 
         # main part of the program
-        if args['email_api'] == '10minutemail.net':
-            console_log('\n[10minutemail.net] Mail registration...', INFO)
-            email_obj = TenMinuteMailNetAPI(driver)
+        if args['email_api'] == '10minutemail':
+            console_log('\n[10minutemail] Mail registration...', INFO)
+            email_obj = TenMinuteMailAPI(driver)
             email_obj.init()
         elif args['email_api'] == 'hi2in':
             console_log('\n[Hi2inAPI] Mail registration...', INFO)
