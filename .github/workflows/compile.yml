@@ -62,7 +62,7 @@ jobs:
           mv ./dist/main "./ESET-KeyGen_v${{ github.event.inputs.version }}_macos_arm64"
 
       - name: Release
-        if: github.ref == 'refs/heads/main'
+        #if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           files: |
