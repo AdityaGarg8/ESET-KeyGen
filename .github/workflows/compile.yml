@@ -54,7 +54,7 @@ jobs:
           curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
           python ./get-pip.py
           python -m pip install --upgrade pip
-          pip install --upgrade charset_normalizer
+          pip install "charset_normalizer<3.0"
           pip install -r requirements.txt
           pip install pyinstaller
           pyinstaller --onefile --clean --target-arch universal2 main.py
