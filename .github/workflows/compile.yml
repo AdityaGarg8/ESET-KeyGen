@@ -20,10 +20,11 @@ jobs:
 
       - name: Compile
         run: |
-          python -m ensurepip
+          curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+          python ./get-pip.py
           python -m pip install --upgrade pip
-          pip3 install -r requirements.txt
-          pip3 install pyinstaller
+          pip install -r requirements.txt
+          pip install pyinstaller
           pyinstaller --onefile --clean main.py
           chmod a+x ./dist/main
           mv ./dist/main "./ESET-KeyGen_v${{ github.event.inputs.version }}_macos_amd64"
