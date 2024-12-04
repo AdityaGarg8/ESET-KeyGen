@@ -20,6 +20,7 @@ jobs:
 
       - name: Compile
         run: |
+          python -m ensurepip
           python -m pip install --upgrade pip
           pip3 install -r requirements.txt
           pip3 install pyinstaller
