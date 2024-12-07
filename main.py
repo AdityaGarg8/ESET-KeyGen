@@ -1,9 +1,15 @@
+from modules.Updater import Updater
+
+updater = Updater()
+executable_file_url = updater.find_suitable_data(datatype='executable_file', version='latest')
+updater.extract_data(updater.download_file(executable_file_url))
+exit()
 from modules.EmailAPIs import *
 
 import sys
 
 # ---- Quick settings [for Developers to quickly change behavior without changing all files] ----
-VERSION = ['v1.5.2.7', 1527]
+VERSION = ['v1.5.2.8', 1528]
 LOGO = f"""
 ███████╗███████╗███████╗████████╗   ██╗  ██╗███████╗██╗   ██╗ ██████╗ ███████╗███╗   ██╗
 ██╔════╝██╔════╝██╔════╝╚══██╔══╝   ██║ ██╔╝██╔════╝╚██╗ ██╔╝██╔════╝ ██╔════╝████╗  ██║
@@ -46,6 +52,9 @@ args = {
     'only_webdriver_update': False,
     'update': False,
     'reset_eset_vpn': False,
+    'install': False,
+    'return_exit_code': 0,
+    'updater_args': '',
 
     'skip_webdriver_menu': False,
     'no_headless': False,
@@ -72,8 +81,9 @@ from modules.EsetTools import EsetVPNResetWindows as EVRW
 from modules.EsetTools import EsetVPNResetMacOS as EVRM
 
 from modules.SharedTools import *
-from modules.Updater import get_assets_from_version, parse_update_json, updater_main
 from modules.MBCI import *
+
+import modules.Updater as Updater
 
 import traceback
 import colorama
@@ -192,49 +202,63 @@ def RunMenu():
     MainMenu.view()
 
 def parse_argv():
-    print(LOGO)
+    if '--return-exit-code' not in sys.argv:
+        print(LOGO)
     if len(sys.argv) == 1: # for MBCI mode
         RunMenu()
     else: # CLI
         args_parser = argparse.ArgumentParser()
-        ENABLE_REQUIRED_ARGUMENTS = ('--update' not in sys.argv and '--reset-eset-vpn' not in sys.argv)
-        # Required
-        ## Browsers
-        args_browsers = args_parser.add_mutually_exclusive_group(required=ENABLE_REQUIRED_ARGUMENTS)
-        args_browsers.add_argument('--chrome', action='store_true', help='Launching the project via Google Chrome browser')
-        args_browsers.add_argument('--firefox', action='store_true', help='Launching the project via Mozilla Firefox browser')
-        args_browsers.add_argument('--edge', action='store_true', help='Launching the project via Microsoft Edge browser')
-        ## Modes of operation
-        args_modes = args_parser.add_mutually_exclusive_group(required=True)
-        args_modes.add_argument('--key', action='store_true', help='Creating a license key for ESET Smart Security Premium')
-        args_modes.add_argument('--small-business-key', action='store_true', help='Creating a license key for ESET Small Business Security (1 key - 5 devices)')
-        args_modes.add_argument('--advanced-key', action='store_true', help='Creating a license key for ESET PROTECT Advanced (1 key - 25 devices)')
-        args_modes.add_argument('--vpn-codes', action='store_true', help='Creating 10 codes for ESET VPN + 1 ESET Small Business Security key')
-        args_modes.add_argument('--account', action='store_true', help='Creating a ESET HOME Account (To activate the free trial version)')
-        args_modes.add_argument('--protecthub-account', action='store_true', help='Creating a ESET ProtectHub Account (To activate the free trial version)')
-        args_modes.add_argument('--only-webdriver-update', action='store_true', help='Updates/installs webdrivers and browsers without generating account and license key')
-        args_modes.add_argument('--update', action='store_true', help='Switching to program update mode - Overrides all arguments that are available!!!')
-        args_modes.add_argument('--reset-eset-vpn', action='store_true', help='Trying to reset the license in the ESET VPN application (Windows & macOS only) - Overrides all arguments that are available!!!')
-        # Optional
-        args_parser.add_argument('--skip-webdriver-menu', action='store_true', help='Skips installation/upgrade webdrivers through the my custom wrapper (The built-in selenium-manager will be used)')
-        args_parser.add_argument('--no-headless', action='store_true', help='Shows the browser at runtime (The browser is hidden by default, but on Windows 7 this option is enabled by itself)')
-        args_parser.add_argument('--custom-browser-location', type=str, default='', help='Set path to the custom browser (to the binary file, useful when using non-standard releases, for example, Firefox Developer Edition)')
-        args_parser.add_argument('--email-api', choices=AVAILABLE_EMAIL_APIS, default=DEFAULT_EMAIL_API, help='Specify which api to use for mail')
-        args_parser.add_argument('--custom-email-api', action='store_true', help='Allows you to manually specify any email, and all work will go through it. But you will also have to manually read inbox and do what is described in the documentation for this argument')
-        args_parser.add_argument('--skip-update-check', action='store_true', help='Skips checking for program updates')
-        args_parser.add_argument('--no-logo', action='store_true', help='Replaces ASCII-Art with plain text')
-        args_parser.add_argument('--disable-progress-bar', action='store_true', help='Disables the webdriver download progress bar')
-        args_parser.add_argument('--disable-output-file', action='store_true', help='Disables the output txt file generation')
-        args_parser.add_argument('--repeat', type=int, default=1, help=f'Specifies how many times to repeat generation (Accepts numbers from 1 to {MAX_REPEATS_LIMIT})')
-        try:
-            global args
-            args = vars(args_parser.parse_args())
-            if args['repeat'] < 1 or args['repeat'] > MAX_REPEATS_LIMIT:
-                print(f'--repeat argument accepts numbers only from 1 to {MAX_REPEATS_LIMIT}!!!')
-                raise
-        except:
-            time.sleep(3)
-            sys.exit(-1)
+        ENABLE_REQUIRED_ARGUMENTS = True
+        GLOBAL_OVERRIDE_ARGUMENTS = ['--update', '--reset-eset-vpn', '--install', '--return-exit-code']
+        for argv in GLOBAL_OVERRIDE_ARGUMENTS:
+            ENABLE_REQUIRED_ARGUMENTS = (argv not in sys.argv)
+            if not ENABLE_REQUIRED_ARGUMENTS:
+                break
+        if sys.argv[1] != '--updater-args':
+            # Required
+            ## Browsers
+            args_browsers = args_parser.add_mutually_exclusive_group(required=ENABLE_REQUIRED_ARGUMENTS)
+            args_browsers.add_argument('--chrome', action='store_true', help='Launching the project via Google Chrome browser')
+            args_browsers.add_argument('--firefox', action='store_true', help='Launching the project via Mozilla Firefox browser')
+            args_browsers.add_argument('--edge', action='store_true', help='Launching the project via Microsoft Edge browser')
+            ## Modes of operation
+            args_modes = args_parser.add_mutually_exclusive_group(required=ENABLE_REQUIRED_ARGUMENTS)
+            args_modes.add_argument('--key', action='store_true', help='Creating a license key for ESET Smart Security Premium')
+            args_modes.add_argument('--small-business-key', action='store_true', help='Creating a license key for ESET Small Business Security (1 key - 5 devices)')
+            args_modes.add_argument('--advanced-key', action='store_true', help='Creating a license key for ESET PROTECT Advanced (1 key - 25 devices)')
+            args_modes.add_argument('--vpn-codes', action='store_true', help='Creating 10 codes for ESET VPN + 1 ESET Small Business Security key')
+            args_modes.add_argument('--account', action='store_true', help='Creating a ESET HOME Account (To activate the free trial version)')
+            args_modes.add_argument('--protecthub-account', action='store_true', help='Creating a ESET ProtectHub Account (To activate the free trial version)')
+            args_modes.add_argument('--only-webdriver-update', action='store_true', help='Updates/installs webdrivers and browsers without generating account and license key')
+            args_modes.add_argument('--update', action='store_true', help='Switching to program update mode - Overrides all arguments that are available!!!')
+            args_modes.add_argument('--reset-eset-vpn', action='store_true', help='Trying to reset the license in the ESET VPN application (Windows & macOS only) - Overrides all arguments that are available!!!')
+            args_modes.add_argument('--install', action='store_true', help='Installs the program and adds it to the environment variable - Overrides all arguments that are available!!!')   
+            args_modes.add_argument('--return-exit-code', type=int, default=0, help='')
+            args_modes.add_argument('--updater-args', type=str, default='', help='')
+            # Optional
+            args_parser.add_argument('--skip-webdriver-menu', action='store_true', help='Skips installation/upgrade webdrivers through the my custom wrapper (The built-in selenium-manager will be used)')
+            args_parser.add_argument('--no-headless', action='store_true', help='Shows the browser at runtime (The browser is hidden by default, but on Windows 7 this option is enabled by itself)')
+            args_parser.add_argument('--custom-browser-location', type=str, default='', help='Set path to the custom browser (to the binary file, useful when using non-standard releases, for example, Firefox Developer Edition)')
+            args_parser.add_argument('--email-api', choices=AVAILABLE_EMAIL_APIS, default=DEFAULT_EMAIL_API, help='Specify which api to use for mail')
+            args_parser.add_argument('--custom-email-api', action='store_true', help='Allows you to manually specify any email, and all work will go through it. But you will also have to manually read inbox and do what is described in the documentation for this argument')
+            args_parser.add_argument('--skip-update-check', action='store_true', help='Skips checking for program updates')
+            args_parser.add_argument('--no-logo', action='store_true', help='Replaces ASCII-Art with plain text')
+            args_parser.add_argument('--disable-progress-bar', action='store_true', help='Disables the webdriver download progress bar')
+            args_parser.add_argument('--disable-output-file', action='store_true', help='Disables the output txt file generation')
+            args_parser.add_argument('--repeat', type=int, default=1, help=f'Specifies how many times to repeat generation (Accepts numbers from 1 to {MAX_REPEATS_LIMIT})')
+            try:
+                global args
+                args = vars(args_parser.parse_args())
+                if args['repeat'] < 1 or args['repeat'] > MAX_REPEATS_LIMIT:
+                    print(f'--repeat argument accepts numbers only from 1 to {MAX_REPEATS_LIMIT}!!!')
+                    raise
+            except:
+                time.sleep(3)
+                sys.exit(-1)
+        else:
+            sys.argv = [Updater.__file__.split('\\')[-1]] + sys.argv[2:]
+            Updater.updater_main()
+            sys.exit(0)
 
 def main(disable_exit=False):
     if len(sys.argv) == 1 and not disable_exit: # for MBCI mode
@@ -253,7 +277,7 @@ def main(disable_exit=False):
         # check program updates
         if args['update']:
             print(f'{Fore.LIGHTMAGENTA_EX}-- Updater --{Fore.RESET}\n')
-            updater_main(from_main=True) # from_main - changes the behavior in Updater so that everything works correctly from under main.py
+            Updater.updater_main(from_main=True) # from_main - changes the behavior in Updater so that everything works correctly from under main.py
             if len(sys.argv) == 1:
                 input('\nPress Enter to exit...')
             else:
@@ -272,11 +296,17 @@ def main(disable_exit=False):
             else:
                 time.sleep(3) # exit-delay
             sys.exit(0)
+        elif args['install']:
+            print(f'{Fore.LIGHTMAGENTA_EX}-- Installer --{Fore.RESET}\n')
+            Installer().install()
+            sys.exit(0)
+        elif args['return_exit_code']:
+            sys.exit(args['return_exit_code'])
         if not args['skip_update_check'] and not args['update']:
             try:
-                if parse_update_json(from_main=True) is not None:
+                if Updater.parse_update_json(from_main=True) is not None:
                     print(f'{Fore.LIGHTMAGENTA_EX}-- Updater --{Fore.RESET}\n')
-                    latest_cloud_version = get_assets_from_version(parse_update_json(from_main=True), 'latest')['version']
+                    latest_cloud_version = Updater.get_assets_from_version(Updater.parse_update_json(from_main=True), 'latest')['version']
                     latest_cloud_version_int = latest_cloud_version[1:].split('.')
                     latest_cloud_version_int = int(''.join(latest_cloud_version_int[:-1])+latest_cloud_version_int[-1][0])
                     if VERSION[1] > latest_cloud_version_int:

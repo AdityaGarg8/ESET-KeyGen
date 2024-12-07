@@ -11,10 +11,12 @@ logger.addHandler(handler)
 logging.getLogger('selenium.webdriver.remote').setLevel(logging.WARN)
 logging.getLogger('selenium.webdriver.common').setLevel(logging.DEBUG)
 
+import subprocess
 import traceback
 import colorama
 import random
 import string
+import shutil
 import time
 import sys
 import os
@@ -333,3 +335,56 @@ def parseVPNCodes(email_obj, driver=None, delay=DEFAULT_DELAY, max_iter=DEFAULT_
                 return match
         time.sleep(delay)
     raise RuntimeError('VPN Codes retrieval error, try again later or change the Email API!!!')
+
+class Installer:
+    def __init__(self):
+        self.install_path = None
+        self.executable_path = None
+        if sys.platform.startswith('win'):
+            self.install_path = os.environ['APPDATA'] + '\\ESET-KeyGen'
+            self.executable_path = self.install_path + '\\esetkeygen.exe'
+        elif sys.platform == "darwin":
+            self.install_path = '/usr/local/bin/esetkeygen'
+            self.executable_path = self.install_path + '\\esetkeygen'
+
+    def check_install(self):
+        exit_code = None
+        try:
+            exit_code = subprocess.call([self.executable_path, '--return-exit-code', '999'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except:
+            pass    
+        return (exit_code == 999)
+    
+    def install(self):
+        if self.check_install():
+            console_log('The program is already installed!!!', OK)
+            return True
+        if sys.platform.startswith('win'):
+            try:
+                os.mkdir(self.install_path)
+            except PermissionError:
+                console_log('No write access, try running the program with elevated permissions!!!', ERROR)
+            except FileExistsError:
+                pass
+            except Exception as e:
+                raise RuntimeError(e)
+            if os.stat(sys.argv[0]).st_size >= 1024*1024*10: # 10MB, install from executable file
+                try:
+                    shutil.copy2(sys.argv[0], self.executable_path)
+                    console_log(f'The program was successfully installed on the path: {self.executable_path}', OK)
+                    try:
+                        subprocess.call(['setx', 'PATH', f'%PATH%;{self.install_path}'], stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+                        console_log('The executable file was also added to the system environment under the name: esetkeygen!!!', OK)
+                    except:
+                        console_log('Error adding an executable file to the system environment!!!', ERROR)
+                    return True
+                except PermissionError:
+                    console_log('No write access, try running the program with elevated permissions!!!', ERROR)
+                except Exception as e:
+                    raise RuntimeError(e)
+                return False
+            else: # 10MB, install from source code
+                print(get_assets_from_version(parse_update_json())['assets'])
+                #console_log('Installation from source is not possible!!!!', ERROR)
+            return False
+
