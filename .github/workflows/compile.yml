@@ -50,6 +50,11 @@ jobs:
       - name: 'Checkout Repo'
         uses: actions/checkout@v4
 
+      - name: Compile (x64)
+        if: false
+        run: |
+          pip install -r requirements.txt
+
       - name: Build Executable with Nuitka
         uses: Nuitka/Nuitka-Action@main
         with:
