@@ -50,19 +50,15 @@ jobs:
       - name: 'Checkout Repo'
         uses: actions/checkout@v4
 
-      - name: Compile (based on Python 3.8.0 x32)
-        run: |
-          mkdir legacy
-          cd legacy
-          Invoke-WebRequest -Uri "https://github.com/rzc0d3r/ESET-KeyGen/releases/download/python380-portable-win32/python-v3.8.0-portable_win32.zip" -OutFile "python-v3.8.0-portable_win32.zip"
-          Expand-Archive -Path "python-v3.8.0-portable_win32.zip" -DestinationPath .
-          .\python.exe -m pip install pyinstaller --no-warn-script-location
-          .\python.exe -m pip install -r ../requirements.txt --no-warn-script-location
-          Scripts/pyinstaller.exe --onefile --clean --collect-data selenium_stealth ../main.py
-          Move-Item -Path .\dist\main.exe -Destination ".\ESET-KeyGen_v${{ github.event.inputs.version }}_win32.exe"
-          cd ..
+      - name: Build Executable with Nuitka
+        uses: Nuitka/Nuitka-Action@main
+        with:
+          nuitka-version: main
+          script-name: main.py
+          mode: onefile
 
       - name: Compile (based on Python x64)
+        if: false
         run: |
           pip install -r requirements.txt
           pip install pyinstaller
@@ -74,8 +70,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            legacy/ESET-KeyGen_v${{ github.event.inputs.version }}_win32.exe
-            ESET-KeyGen_v${{ github.event.inputs.version }}_win64.exe
+            ${{ github.workspace }}/Build/*.exe
+            #ESET-KeyGen_v${{ github.event.inputs.version }}_win64.exe
           name: ${{ github.event.inputs.release_name }}
           tag_name: v${{ github.event.inputs.tagname }}
           draft: false
